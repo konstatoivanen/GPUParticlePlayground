@@ -1,0 +1,202 @@
+﻿#pragma kernel CSBoidMain
+
+struct Boid
+{
+  float2 pos;
+  float2 vel;
+  float4 col;
+};
+
+int    NumBoids;
+float4 Params1;
+float4 Params2;
+float4 Params3;
+float4 Params4;
+float4 Params5;
+
+RWStructuredBuffer<Boid> BoidBuffer;
+Texture2D<float4>        CollisionMask;
+SamplerState             samplerCollisionMask;
+
+#define G (6.67300E-11)
+
+#define REPEL_WEIGHT     (Params1.x)
+#define ALIGN_WEIGHT     (Params1.y)
+#define COHESION_WEIGHT  (Params1.z)
+#define COHESION_COEF    (Params1.w)
+
+#define REPEL_DIST       (Params2.x)
+#define ALIGN_DIST       (Params2.y)
+#define COHESION_DIST    (Params2.z)
+#define MAX_FORCE        (Params2.w)
+
+#define INVMASS          (Params3.x)
+#define DELTATIME        (Params3.y)
+#define BOUNDS           (Params3.zw)
+
+#define MSInput          (Params4.xy)
+#define ALIGN_COEF       (Params4.z)
+#define BODYRADIUS       (Params4.w)
+
+#define BODYMASS         (Params5.x)
+#define DRAG             (Params5.y)
+#define UNITSCALE        (Params5.z)
+#define BOUNCINESS       (Params5.w)
+
+float2 mclamp(float2 v, float l) 
+{
+    float al = length(v);
+    if (al > l) 
+    {
+        v = v * l / al;
+    }
+    return v;
+}
+float2 maxVec(float2 v, float l) { return v * l / length(v); }
+float2 unpacknormal(float2 n) { return normalize(2 * (n - 0.5)); }
+
+float3 INS_REPEL(float3 sum, float dist, float2 lDiff)
+{
+    if (dist > REPEL_DIST) 
+        return sum;
+
+    sum.xy += (lDiff * (REPEL_DIST / (dist * dist)));
+    sum.z  += 1;
+
+    return sum;
+}
+float3 INS_ALIGN(float3 sum, float2 vel, float dist)
+{
+    if(dist > ALIGN_DIST)
+        return sum;
+
+    sum.xy += vel;
+    sum.z  += 1;
+
+    return sum;
+}
+float3 INS_COHESION(float3 sum, float2 pos, float dist)
+{
+    if(dist > COHESION_DIST)
+        return sum;
+
+    sum.xy += pos;
+    sum.z  += 1;
+
+    return sum;
+}
+
+float2 COMPOSITE_STEERING(float3 sum, float2 vel)
+{
+    if(sum.z <= 0.0f)
+        return sum.xy;
+
+    sum.xy = maxVec(sum.xy, ALIGN_COEF) - vel;
+    sum.xy = mclamp(sum.xy, MAX_FORCE);
+    return sum.xy;
+}
+float2 COMPOSITE_COHESION(float3 sum, float2 vel, float2 pos)
+{
+    if(sum.z <= 0.0f)
+        return sum.xy;
+
+    sum.xy = sum.xy / sum.z; // Average Position
+    sum.xy = sum.xy - pos;
+    sum.xy = maxVec(sum.xy, COHESION_COEF) - vel;
+    sum.xy = mclamp(sum.xy, MAX_FORCE);
+
+    return sum.xy;
+}
+float2 CALCULATE_BOID_FORCE(int id,  Boid b)
+{
+    float3 repel, align, cohesion = 0;
+
+    for (int i = NumBoids - 1; i >= 0; --i)
+    {
+        if (id == i)
+            continue;
+
+        float2 lDiff = b.pos - BoidBuffer[i].pos;
+        float d = length(lDiff);
+
+        repel    = INS_REPEL(repel,       d, lDiff);
+        align    = INS_ALIGN(align,       BoidBuffer[i].vel, d);
+        cohesion = INS_COHESION(cohesion, BoidBuffer[i].pos, d);
+    }
+
+    repel.xy    = COMPOSITE_STEERING(repel,    b.vel);
+    align.xy    = COMPOSITE_STEERING(align,    b.vel);
+    cohesion.xy = COMPOSITE_COHESION(cohesion, b.vel, b.pos);
+
+    float2 force = repel.xy    * REPEL_WEIGHT +   // Separation
+                   align.xy    * ALIGN_WEIGHT +   // Alignment
+                   cohesion.xy * COHESION_WEIGHT; // Cohesion
+
+    force = mclamp(force, MAX_FORCE);
+
+    return force;
+}
+
+float2 WRAPBORDER(float2 pos)
+{
+    return float2( fmod(pos.x + BOUNDS.x, BOUNDS.x), fmod(pos.y + BOUNDS.y, BOUNDS.y));
+}
+
+float2 CALCULATE_GRAVITY(Boid b)
+{
+    float2 vec     = (b.pos - MSInput) *  UNITSCALE;
+    float  rsqrtl  = length(vec);
+
+    //To avoid high gravitational forces
+    //and to simulate a circle with homogenous density
+    //distance is clameped to BODYRADIUS
+    rsqrtl  = max(rsqrtl, BODYRADIUS);
+    rsqrtl *= rsqrtl;
+    rsqrtl *= rsqrtl;
+    rsqrtl  = 1 / rsqrtl;
+
+    float mass = 1 / INVMASS;
+
+    return vec * G * (BODYMASS * mass) * rsqrtl;
+}
+void   CALCULATE_KINEMATICS(inout Boid b, float2 force)
+{
+    b.vel += force * DELTATIME * INVMASS;
+    b.vel *= saturate(1 - DELTATIME * DRAG);
+    b.pos += b.vel * DELTATIME;
+}
+void   COLLISION(inout Boid b)
+{
+    float2 uvPos = b.pos.xy / BOUNDS;
+    float4 collision = CollisionMask.SampleLevel(samplerCollisionMask, uvPos, 0);
+
+    float2 normal = -unpacknormal(collision.xy);
+
+    //If no collision was detected lerp the boid color towards gray
+    if (collision.z <= 0)
+    {
+        b.col = lerp(b.col, float4(0.25, 0.5, 0.5, 1), DELTATIME * 0.01);
+        return;
+    }
+
+    b.vel  = reflect(b.vel, normal) * BOUNCINESS;
+    b.pos += normal * (1 - collision.z);
+    b.col  = float4(1, 0, 0, 1);
+}
+
+[numthreads(32, 1, 1)] 
+void CSBoidMain(uint3 id : SV_DispatchThreadID) 
+{
+    Boid b = BoidBuffer[id.x];
+
+    float2 force  = CALCULATE_BOID_FORCE((int) id.x, b);
+           force += CALCULATE_GRAVITY(b);
+
+    CALCULATE_KINEMATICS(b, force);
+
+    b.pos = WRAPBORDER(b.pos);
+
+    COLLISION(b);
+
+    BoidBuffer[id.x] = b;
+}
