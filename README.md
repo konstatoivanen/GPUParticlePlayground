@@ -32,7 +32,7 @@ A DirectX 11 based boid flocking simulation.
   * Screen space shader for normal map painting.
   * Outputs to an accumulative drawing buffer.
   * renders a 2D signed distance field where only positive values are visible.
-    * normals are calculated by sampling the field around currently rendered pixel.
+    * normals are calculated by sampling the field around the active pixel.
 * SH_PROC_BoidMesh
   * Procedurally generates quads out of boid instances.
   * Transforms boids from screen space to clip space.
