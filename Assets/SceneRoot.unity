@@ -383,20 +383,20 @@ MonoBehaviour:
   parameters:
     Count: 16000
     Timescale: 1
-    Drag: 0.1
-    BodyMass: 1e+12
+    Drag: 0.01
+    BodyMass: 1e+13
     BodyRadius: 0.5
-    Bounciness: 1
+    Bounciness: 0.5
     UnitScale: 0.01
-    BoidMass: 5
-    BoidMaxForce: 500
+    BoidMass: 25
+    BoidMaxForce: 5000
     RepelWeight: 150
     RepelDistance: 6
-    CohesionWeight: 10
-    CohesionCoef: 25
+    CohesionWeight: 30
+    CohesionCoef: 50
     CohesionDistance: 50
     AlignWeight: 100
-    AlignCoef: 25
+    AlignCoef: 50
     AlignDistance: 25
   compute: {fileID: 7200000, guid: 02fde166b00123f4287da027b2ea27cc, type: 3}
 --- !u!20 &282840813

@@ -45,6 +45,8 @@ public class RootRenderer : MonoBehaviour, ISimulationSettings
 
         ResetComputeSim();
 
+        AllowInput = true;
+
         Application.targetFrameRate = 120;
     }
 

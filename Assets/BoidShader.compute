@@ -170,14 +170,14 @@ void   COLLISION(inout Boid b)
     float2 uvPos = b.pos.xy / BOUNDS;
     float4 collision = CollisionMask.SampleLevel(samplerCollisionMask, uvPos, 0);
 
-    float2 normal = -unpacknormal(collision.xy);
-
     //If no collision was detected lerp the boid color towards gray
     if (collision.z <= 0)
     {
         b.col = lerp(b.col, float4(0.25, 0.5, 0.5, 1), DELTATIME * 0.01);
         return;
     }
+
+    float2 normal = -unpacknormal(collision.xy);
 
     b.vel  = reflect(b.vel, normal) * BOUNCINESS;
     b.pos += normal * (1 - collision.z);

@@ -17,7 +17,7 @@ namespace Utilities.UI
         public void OnValueChanged()
         {
             OnSettingChange?.Invoke(new SettingEvent(type, slider.value));
-            sliderValue.text = slider.value.ToString("##.#");
+            sliderValue.text = String.Format("{0:0.00}", slider.value);
         }
 
         public void OnHover()
@@ -33,7 +33,7 @@ namespace Utilities.UI
 
             slider.value = value;
 
-            sliderValue.text = value.ToString("##.#");
+            sliderValue.text = String.Format("{0:0.00}", value);
 
             header.text = SettingData.displayValues[type];
         }
