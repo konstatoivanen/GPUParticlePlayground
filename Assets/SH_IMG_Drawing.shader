@@ -53,6 +53,7 @@
 			length = (index / length) * 6.28;
 			return radianDirection(length);
 		}
+
 		//Samples a 0-1 height map into a -1 - 1 normal
 		float2 sampleHeightMap(sampler2D source, float2 uv, float2 offs)
 		{
@@ -73,10 +74,11 @@
 
 			return (normalize(n) + 1) / 2;
 		}
+
 		//Returns the distance to brush edge from current pixel coordinate in pixels
-		float  getLength(float2 cp, float2 pc, float r)
+		float  signedDistance(float2 cp, float2 pc, float r)
 		{
-			return (1 - saturate(distance(pc, cp) / r)) * r;
+			return r - distance(pc, cp);
 		}
 
 		//Main Drawing method
@@ -86,15 +88,10 @@
 
 			float4 prevImage = tex2D(_MainTex, i.uv);
 
-			float cl = getLength(_CursorPos, pc, _BrushSize);
-			float ca = step(0, cl) * _BrushDraw;
+			float cl = signedDistance(_CursorPos, pc, _BrushSize) * _BrushDraw;
+			float2 n = sampleHeightMap(_MainTex, i.uv, float2(0.01, 32 / _ScreenParams.x));
 
-			if (ca < 0.01)
-				return prevImage;
-
-			float2 n = sampleHeightMap(_MainTex, i.uv, float2(0.01, 0.01 * (_ScreenParams.x / _ScreenParams.y)));
-
-			return float4(n, max(cl, prevImage.b), 1) * ca;
+			return float4(n, max(cl, prevImage.b), 1);
 		}
 
 		//Copy method that clips normals outside of brush radius

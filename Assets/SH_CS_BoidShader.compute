@@ -19,6 +19,7 @@ Texture2D<float4>        CollisionMask;
 SamplerState             samplerCollisionMask;
 
 #define G (6.67300E-11) //Gravitational Constant G
+#define DYNAMIC_FRICTION_COEF (0.95f)
 
 #define REPEL_WEIGHT     (Params1.x) //Weight of the boid repel force.
 #define ALIGN_WEIGHT     (Params1.y) //Weight of the boid align force.
@@ -205,7 +206,13 @@ void   BRUSH_COLLISION(inout Boid b)
 
     float2 normal = -unpacknormal(collision.xy);
 
-    b.vel  = reflect(b.vel, normal) * ELASTICITY;
+    //Interpolation between perpendicular impact elasticity and aligned friction
+    //For the sake of simplicity there is no static friction in the simulation
+    //and only very lazy dynamic one.
+    float conservation = dot(normalize(-b.vel), normal);
+    conservation = lerp(DYNAMIC_FRICTION_COEF, ELASTICITY, saturate(conservation));
+
+    b.vel = reflect(b.vel, normal) * conservation;
     b.pos += normal * collision.z;
     b.col  = float4(1, 0, 0, 1);
 }

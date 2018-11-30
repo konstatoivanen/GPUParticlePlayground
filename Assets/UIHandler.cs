@@ -48,7 +48,7 @@ namespace Utilities.UI
                 case SettingType.Drag:              simulationSettings.SimulationParameters.Drag              = evt.value; break;
                 case SettingType.BodyMass:          simulationSettings.SimulationParameters.BodyMass          = evt.value * evt.value; break;
                 case SettingType.BodyRadius:        simulationSettings.SimulationParameters.BodyRadius        = evt.value; break;
-                case SettingType.Bounciness:        simulationSettings.SimulationParameters.Bounciness        = evt.value; break;
+                case SettingType.Elasticity:        simulationSettings.SimulationParameters.Elasticity        = evt.value; break;
                 case SettingType.UnitScale:         simulationSettings.SimulationParameters.UnitScale         = evt.value; break;
                 case SettingType.BoidMass:          simulationSettings.SimulationParameters.BoidMass          = evt.value; break;
                 case SettingType.BoidMaxForce:      simulationSettings.SimulationParameters.BoidMaxForce      = evt.value; break;
@@ -73,7 +73,7 @@ namespace Utilities.UI
                 case SettingType.Drag:              return simulationSettings.SimulationParameters.Drag;
                 case SettingType.BodyMass:          return Mathf.Sqrt(simulationSettings.SimulationParameters.BodyMass);
                 case SettingType.BodyRadius:        return simulationSettings.SimulationParameters.BodyRadius;
-                case SettingType.Bounciness:        return simulationSettings.SimulationParameters.Bounciness;
+                case SettingType.Elasticity:        return simulationSettings.SimulationParameters.Elasticity;
                 case SettingType.UnitScale:         return simulationSettings.SimulationParameters.UnitScale;
                 case SettingType.BoidMass:          return simulationSettings.SimulationParameters.BoidMass;
                 case SettingType.BoidMaxForce:      return simulationSettings.SimulationParameters.BoidMaxForce;

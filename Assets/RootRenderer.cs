@@ -166,7 +166,7 @@ public class BoidSimParams
     public float Drag             = 1;
     public float BodyMass         = 100000;
     public float BodyRadius       = 0.5f;
-    public float Bounciness       = 1;
+    public float Elasticity       = 0.75f;
     public float UnitScale        = 0.1f;
     public float BoidMass         = 5;
 
@@ -202,7 +202,7 @@ public class BoidSimParams
         shader.SetFloats(hashParams2, new float[4] { RepelDistance,         AlignDistance,              CohesionDistance,       BoidMaxForce    });
         shader.SetFloats(hashParams3, new float[4] { InvMass,               Time.deltaTime * Timescale, Screen.width,           Screen.height   });
         shader.SetFloats(hashParams4, new float[4] { mousePosition.x,       mousePosition.y,            AlignCoef,              BodyRadius      });
-        shader.SetFloats(hashParams5, new float[4] { BodyMass * massSign,   Drag,                       UnitScale,              Bounciness      });
+        shader.SetFloats(hashParams5, new float[4] { BodyMass * massSign,   Drag,                       UnitScale,              Elasticity      });
     }
 }
 
