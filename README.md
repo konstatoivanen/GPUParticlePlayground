@@ -23,7 +23,7 @@ A DirectX 11 based boid flocking simulation.
   
 ## Source File Appendix
 * RootRenderer
-  * Executes the render loop.
+  * Executes the render and simulation loop.
   * Creates and holds reference of runtime graphics resources.
 * SH_CS_BoidCompute
   * Responsible for core boid simulation logic.
