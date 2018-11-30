@@ -22,8 +22,8 @@ A DirectX 11 based boid flocking simulation.
   
 ## Source File Appendix
 * RootRenderer
-  * Executes the render loop
-  * Creates and holds reference of runtime graphics resources
+  * Executes the render loop.
+  * Creates and holds reference of runtime graphics resources.
 * SH_CS_BoidCompute
   * Responsible for core boid simulation logic.
   * DirectX11 Compute Shader.
@@ -35,3 +35,10 @@ A DirectX 11 based boid flocking simulation.
 * SH_PROC_BoidMesh
   * Procedurally generates quads out of boid instances.
   * Transforms boids from screen space to clip space.
+* UIUtilities
+  * UI Utility classes and interfaces.
+* UISetting
+  * UI ISetting interface implementation for setting instantiation.
+* UIHandler
+  * Handles UI logic and toggles user input.
+  * Acts as an interface between RootRenderer and UISetting.
