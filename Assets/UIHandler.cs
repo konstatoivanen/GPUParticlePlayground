@@ -13,12 +13,14 @@ namespace Utilities.UI
 
         private ISimulationSettings simulationSettings;
 
+        //Initialization
     	void Awake ()
         {
             simulationSettings = Camera.main.GetComponent<ISimulationSettings>();
 
             var values = (SettingType[])Enum.GetValues(typeof(SettingType));
 
+            //Initialize setting sliders
             foreach(var v in values)
             {
                 var setting = Instantiate(settingPrefab, settingsParent).GetComponent<ISetting>();
@@ -29,13 +31,14 @@ namespace Utilities.UI
             }
 
     	}
-
+        //Toggles the config menu and blocks/unblocks drawing/gravity input.
         public void ToggleConfig()
         {
             settingsRoot.SetActive(!settingsRoot.activeSelf);
             simulationSettings.AllowInput = !settingsRoot.activeSelf;
         }
 
+        //Receiver method for when a simulation setting delta is submited.
         private void OnSettingChange(SettingEvent evt)
         {
             switch(evt.type)
@@ -60,6 +63,7 @@ namespace Utilities.UI
             }
         }
 
+        //Initial value look up method.
         private float GetSettingValue(SettingType type)
         {
             switch(type)
@@ -86,6 +90,7 @@ namespace Utilities.UI
             return 1;
         }
 
+        //Receiver method for when a setting is hovered over and setting info should be displayed.
         private void DisplayContext(SettingType type)
         {
             hintText.text = SettingData.displayInfo[type];

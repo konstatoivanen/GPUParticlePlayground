@@ -18,31 +18,32 @@ RWStructuredBuffer<Boid> BoidBuffer;
 Texture2D<float4>        CollisionMask;
 SamplerState             samplerCollisionMask;
 
-#define G (6.67300E-11)
+#define G (6.67300E-11) //Gravitational Constant G
 
-#define REPEL_WEIGHT     (Params1.x)
-#define ALIGN_WEIGHT     (Params1.y)
-#define COHESION_WEIGHT  (Params1.z)
-#define COHESION_COEF    (Params1.w)
+#define REPEL_WEIGHT     (Params1.x) //Weight of the boid repel force.
+#define ALIGN_WEIGHT     (Params1.y) //Weight of the boid align force.
+#define COHESION_WEIGHT  (Params1.z) //Weight of the boid cohesion force.
+#define COHESION_COEF    (Params1.w) //Coefficient for cohesion / velocity substraction.
 
-#define REPEL_DIST       (Params2.x)
-#define ALIGN_DIST       (Params2.y)
-#define COHESION_DIST    (Params2.z)
-#define MAX_FORCE        (Params2.w)
+#define REPEL_DIST       (Params2.x) //Distance threshold under which boid repelling is applied.
+#define ALIGN_DIST       (Params2.y) //Distance threshold under which boid aligment is applied.
+#define COHESION_DIST    (Params2.z) //Distance threshold under which boid cohesion is applied.
+#define MAX_FORCE        (Params2.w) //Maximum force the boid flocking algorithm can exert.
 
-#define INVMASS          (Params3.x)
-#define DELTATIME        (Params3.y)
-#define BOUNDS           (Params3.zw)
+#define INVMASS          (Params3.x)  //Ivese mass of a single boid.
+#define DELTATIME        (Params3.y)  //Delta time of the current frame.
+#define BOUNDS           (Params3.zw) //Screen bounds in pixels.
 
-#define MSInput          (Params4.xy)
-#define ALIGN_COEF       (Params4.z)
-#define BODYRADIUS       (Params4.w)
+#define MSInput          (Params4.xy) //Mouse position.
+#define ALIGN_COEF       (Params4.z)  //Coefficient for alignment / velocity substraction.
+#define BODYRADIUS       (Params4.w)  //Mouse gravity point radius lower bound.
 
-#define BODYMASS         (Params5.x)
-#define DRAG             (Params5.y)
-#define UNITSCALE        (Params5.z)
-#define BOUNCINESS       (Params5.w)
+#define BODYMASS         (Params5.x)  //Mouse gravity point mass,
+#define DRAG             (Params5.y)  //Drag variable for (pseudo) air resistance.
+#define UNITSCALE        (Params5.z)  //Scaling factor for mouse gravity point distance calculations.
+#define ELASTICITY       (Params5.w)  //Elasticity of brush collisions.
 
+//Clamps the vector v to the magnitude l
 float2 mclamp(float2 v, float l) 
 {
     float al = length(v);
@@ -52,22 +53,29 @@ float2 mclamp(float2 v, float l)
     }
     return v;
 }
+
+//Returns a vecotor of direction v and the length of l
 float2 maxVec(float2 v, float l) { return v * l / length(v); }
+
+//Unpacks a 0-1 space normal into -1 - 1 space
 float2 unpacknormal(float2 n) { return normalize(2 * (n - 0.5)); }
 
-float3 INS_REPEL(float3 sum, float dist, float2 lDiff)
+//Calculates reppelance against a single boid
+float3 INS_REPEL(float3 sum, float dist, float2 deltaVec)
 {
-    if (dist > REPEL_DIST) 
+    if (dist > REPEL_DIST * REPEL_DIST) 
         return sum;
 
-    sum.xy += (lDiff * (REPEL_DIST / (dist * dist)));
+    sum.xy += deltaVec * (REPEL_DIST / dist);
     sum.z  += 1;
 
     return sum;
 }
+
+//Calculates alignment towards a single boid
 float3 INS_ALIGN(float3 sum, float2 vel, float dist)
 {
-    if(dist > ALIGN_DIST)
+    if(dist > ALIGN_DIST * ALIGN_DIST)
         return sum;
 
     sum.xy += vel;
@@ -75,9 +83,11 @@ float3 INS_ALIGN(float3 sum, float2 vel, float dist)
 
     return sum;
 }
+
+//Calculates cohesion towards a single boid
 float3 INS_COHESION(float3 sum, float2 pos, float dist)
 {
-    if(dist > COHESION_DIST)
+    if(dist > COHESION_DIST * COHESION_DIST)
         return sum;
 
     sum.xy += pos;
@@ -86,6 +96,7 @@ float3 INS_COHESION(float3 sum, float2 pos, float dist)
     return sum;
 }
 
+//Calculates a composite steering force for a single boid (repel & align)
 float2 COMPOSITE_STEERING(float3 sum, float2 vel)
 {
     if(sum.z <= 0.0f)
@@ -95,6 +106,8 @@ float2 COMPOSITE_STEERING(float3 sum, float2 vel)
     sum.xy = mclamp(sum.xy, MAX_FORCE);
     return sum.xy;
 }
+
+//Calculates a composite cohesion force for a single boid
 float2 COMPOSITE_COHESION(float3 sum, float2 vel, float2 pos)
 {
     if(sum.z <= 0.0f)
@@ -107,6 +120,10 @@ float2 COMPOSITE_COHESION(float3 sum, float2 vel, float2 pos)
 
     return sum.xy;
 }
+
+//Calculates the force applied to a boid based on the current boid flocking parameters
+//This could be added to a conditional compile since it is very expensive.
+//@TODO Consider adding inter boid collisions
 float2 CALCULATE_BOID_FORCE(int id,  Boid b)
 {
     float3 repel, align, cohesion = 0;
@@ -116,42 +133,43 @@ float2 CALCULATE_BOID_FORCE(int id,  Boid b)
         if (id == i)
             continue;
 
-        float2 lDiff = b.pos - BoidBuffer[i].pos;
-        float d = length(lDiff);
+        float2 deltaVec  = b.pos - BoidBuffer[i].pos;
+        float  rDistance = deltaVec.x * deltaVec.x + deltaVec.y * deltaVec.y;
 
-        repel    = INS_REPEL(repel,       d, lDiff);
-        align    = INS_ALIGN(align,       BoidBuffer[i].vel, d);
-        cohesion = INS_COHESION(cohesion, BoidBuffer[i].pos, d);
+        repel    = INS_REPEL(repel,       rDistance, deltaVec);
+        align    = INS_ALIGN(align,       BoidBuffer[i].vel, rDistance);
+        cohesion = INS_COHESION(cohesion, BoidBuffer[i].pos, rDistance);
     }
 
     repel.xy    = COMPOSITE_STEERING(repel,    b.vel);
     align.xy    = COMPOSITE_STEERING(align,    b.vel);
     cohesion.xy = COMPOSITE_COHESION(cohesion, b.vel, b.pos);
 
-    float2 force = repel.xy    * REPEL_WEIGHT +   // Separation
-                   align.xy    * ALIGN_WEIGHT +   // Alignment
-                   cohesion.xy * COHESION_WEIGHT; // Cohesion
+    float2 force = repel.xy    * REPEL_WEIGHT +   
+                   align.xy    * ALIGN_WEIGHT +   
+                   cohesion.xy * COHESION_WEIGHT;
 
     force = mclamp(force, MAX_FORCE);
 
     return force;
 }
 
+//Wraps a positions beyond screen bounds
 float2 WRAPBORDER(float2 pos)
 {
     return float2( fmod(pos.x + BOUNDS.x, BOUNDS.x), fmod(pos.y + BOUNDS.y, BOUNDS.y));
 }
 
+//Calculates gravitational pull towards mouse point
 float2 CALCULATE_GRAVITY(Boid b)
 {
     float2 vec     = (b.pos - MSInput) *  UNITSCALE;
-    float  rsqrtl  = length(vec);
+    float  rsqrtl  = vec.x * vec.x + vec.y * vec.y;
 
     //To avoid high gravitational forces
     //and to simulate a circle with homogenous density
     //distance is clameped to BODYRADIUS
-    rsqrtl  = max(rsqrtl, BODYRADIUS);
-    rsqrtl *= rsqrtl;
+    rsqrtl  = max(rsqrtl, BODYRADIUS * BODYRADIUS);
     rsqrtl *= rsqrtl;
     rsqrtl  = 1 / rsqrtl;
 
@@ -159,13 +177,21 @@ float2 CALCULATE_GRAVITY(Boid b)
 
     return vec * G * (BODYMASS * mass) * rsqrtl;
 }
+
+//Calculates Acceleration, (Pseudo) Drag & delta position
 void   CALCULATE_KINEMATICS(inout Boid b, float2 force)
 {
     b.vel += force * DELTATIME * INVMASS;
     b.vel *= saturate(1 - DELTATIME * DRAG);
     b.pos += b.vel * DELTATIME;
 }
-void   COLLISION(inout Boid b)
+
+//Solves collisions when boid touches a pixel that has been drawn onto by the normal painter
+//The collision masks channel z indicates the distance the boid needs to be moved for full depenetration
+//If z is greater than 0 the boid is inside a brush stroke
+//To solve the collision the boid is moved along the unpacked normal multiplied by z
+//Boid velocity is reflected from the normal plane and multiplied by ELASTICITY with describes the elasticity of the collision
+void   BRUSH_COLLISION(inout Boid b)
 {
     float2 uvPos = b.pos.xy / BOUNDS;
     float4 collision = CollisionMask.SampleLevel(samplerCollisionMask, uvPos, 0);
@@ -179,11 +205,15 @@ void   COLLISION(inout Boid b)
 
     float2 normal = -unpacknormal(collision.xy);
 
-    b.vel  = reflect(b.vel, normal) * BOUNCINESS;
-    b.pos += normal * (1 - collision.z);
+    b.vel  = reflect(b.vel, normal) * ELASTICITY;
+    b.pos += normal * collision.z;
     b.col  = float4(1, 0, 0, 1);
 }
 
+//Main method of the compute shader
+//Due to the way shaders are parsed this needs to be placed last
+//so it can reference the previously declared methods.
+//Maximum thread group size on nvidia gpus was 32, though luck amd users.
 [numthreads(32, 1, 1)] 
 void CSBoidMain(uint3 id : SV_DispatchThreadID) 
 {
@@ -196,7 +226,7 @@ void CSBoidMain(uint3 id : SV_DispatchThreadID)
 
     b.pos = WRAPBORDER(b.pos);
 
-    COLLISION(b);
+    BRUSH_COLLISION(b);
 
     BoidBuffer[id.x] = b;
 }

@@ -3,6 +3,7 @@ using UnityEngine;
 
 namespace Utilities.UI
 {
+    //Setting types
     public enum SettingType
     {
         Count,
@@ -24,6 +25,7 @@ namespace Utilities.UI
         AlignDistance,
     }
 
+    //Event clas for when a setting change is submited
     public class SettingEvent
     {
         public SettingType type;
@@ -36,6 +38,7 @@ namespace Utilities.UI
         }
     }
 
+    //Interface for communicating with a setting instance.
     public interface ISetting
     {
         SettingType type { get; set; }
@@ -44,6 +47,7 @@ namespace Utilities.UI
         void Initialize(float value);
     }
 
+    //Interface for communicating with RootRenderer.
     public interface ISimulationSettings
     {
         bool AllowInput { get; set; }
@@ -51,6 +55,8 @@ namespace Utilities.UI
         void SetBoidCount(int count);
     }
 
+    //Utility class for convenient data access. 
+    //This is in no way optimal but for this occasion it is fine.
     public static class SettingData
     {
         public static readonly Dictionary<SettingType, string> displayValues = new Dictionary<SettingType, string>()

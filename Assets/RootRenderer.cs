@@ -3,8 +3,10 @@ using Utilities.UI;
 
 public class RootRenderer : MonoBehaviour, ISimulationSettings
 {
+    //Interface accessor
     public BoidSimParams SimulationParameters => parameters;
 
+    //Interface accessor
     public bool AllowInput { get; set; }
 
     public float brushSize;
@@ -16,6 +18,7 @@ public class RootRenderer : MonoBehaviour, ISimulationSettings
     private Material      materialMesh;
     private Material      materialBlit;
 
+    //Hashed ids of shader variables
     private int kernelSimulate;
     private readonly int hashBrushSize      = Shader.PropertyToID("_BrushSize");
     private readonly int hashBrushDraw      = Shader.PropertyToID("_BrushDraw");
@@ -27,59 +30,75 @@ public class RootRenderer : MonoBehaviour, ISimulationSettings
 
     private void Awake()
     {
+        //Create drawing buffer material
         materialBlit = new Material(Shader.Find("Hidden/Drawing"))
         {
             hideFlags = HideFlags.HideAndDontSave
         };
 
+        //Create procedural boid mesh material
         materialMesh = new Material(Shader.Find("Hidden/BoidMeshShader"))
         {
             hideFlags = HideFlags.HideAndDontSave
         };
 
+        //Find compute shader kernel index
         kernelSimulate = compute.FindKernel("CSBoidMain");
 
+        //Transform user set boid count into multiples of 32
         parameters.Count = (parameters.Count / 32) * 32;
 
-        boidBuffer = new ComputeBuffer(parameters.Count, sizeof(float) * 8, ComputeBufferType.Append);
+        //Create new boid data buffer
+        boidBuffer = new ComputeBuffer(parameters.Count, sizeof(float) * 8, ComputeBufferType.Default);
 
+        //Reset boid simulation and initialize boids
         ResetComputeSim();
 
+        //Allow brush and gravity input
         AllowInput = true;
 
+        //There was a noticable jitter on higher than 120 framerates (might be just my machine)
         Application.targetFrameRate = 120;
     }
 
     private void Update()
     {
+        //Scan for reset key
         if (Input.GetKeyDown(KeyCode.W))
             ResetComputeSim();
     }
 
+    //Renders the frame and updates the boid simulation
     private void OnRenderImage(RenderTexture source, RenderTexture destination)
     {
+        //Recreate drawing buffer if screen size has changed
         DrawingBufferDirtyCheck(source.descriptor);
 
+        //Update input
         var mousePosition      = new Vector2(Input.mousePosition.x, Input.mousePosition.y);
         var currentBrushWeight = !AllowInput ? 0 : Input.GetKey(KeyCode.Mouse0) ? 1 : 0;
         int massSign           = !AllowInput ? 0 : Input.GetKey(KeyCode.Q) ? 1 : Input.GetKey(KeyCode.E) ? -1 : 0;
 
+        //Set drawing pass params
         materialBlit.SetInt(hashBrushDraw,    currentBrushWeight);
         materialBlit.SetFloat(hashBrushSize,  brushSize);
         materialBlit.SetVector(hashCursorPos, mousePosition);
 
+        //Do drawing pass
         Graphics.Blit(drawingBuffer, source);
         Graphics.Blit(source,        drawingBuffer, materialBlit, 0);
         Graphics.Blit(drawingBuffer, destination,   materialBlit, 1);
 
-        // Do Boid Pass
+        //Do Boid Pass
         parameters.SetComputeParams(compute, mousePosition, massSign);
-        compute.Dispatch(kernelSimulate,   parameters.Count / 32, 1, 1);
+        compute.Dispatch(kernelSimulate,   parameters.Count / 32, 1, 1); //Maximum thread group size on nvidia gpus was 32, though luck amd users.
 
+        //Render boids
         materialMesh.SetPass(0);
         Graphics.DrawProcedural(MeshTopology.Triangles, 2 * 3, parameters.Count);
     }
 
+    //Destroys resources
     private void OnDestroy()
     {
         DestroyImmediate(materialBlit);
@@ -89,6 +108,7 @@ public class RootRenderer : MonoBehaviour, ISimulationSettings
         boidBuffer.Release();
     }
 
+    //Reset boid simulation parameters
     private void ResetComputeSim()
     {
         parameters.Count = (parameters.Count / 32) * 32;
@@ -109,6 +129,8 @@ public class RootRenderer : MonoBehaviour, ISimulationSettings
         if (drawingBuffer != null) DestroyImmediate(drawingBuffer);
     }
 
+    //Checks for discrepencies between active render target and drawing buffer
+    //and reinitializes drawing buffer if necessary
     private void DrawingBufferDirtyCheck(RenderTextureDescriptor desc)
     {
         if (drawingBuffer != null && drawingBuffer.width == desc.width && drawingBuffer.height == desc.height)
@@ -124,6 +146,8 @@ public class RootRenderer : MonoBehaviour, ISimulationSettings
         compute.SetTexture(kernelSimulate, hashCollisionMask, drawingBuffer);
     }
 
+    //Interface method for setting boid count as setting the variable count directly would offset the boid buffer
+    //and a non multiple of 32 value could lead to unintended behaviour.
     public void SetBoidCount(int count)
     {
         parameters.Count = count;
@@ -131,7 +155,7 @@ public class RootRenderer : MonoBehaviour, ISimulationSettings
     }
 }
 
-
+//Property class for boid simulation parameter manipulation
 [System.Serializable]
 public class BoidSimParams
 {
@@ -161,14 +185,15 @@ public class BoidSimParams
     public float AlignCoef        = 1;
     public float AlignDistance    = 1;
 
+    //Hashed shader variable ids
     private readonly int hashCount   = Shader.PropertyToID("NumBoids");
-
     private readonly int hashParams1 = Shader.PropertyToID("Params1");
     private readonly int hashParams2 = Shader.PropertyToID("Params2");
     private readonly int hashParams3 = Shader.PropertyToID("Params3");
     private readonly int hashParams4 = Shader.PropertyToID("Params4");
     private readonly int hashParams5 = Shader.PropertyToID("Params5");
 
+    //Sets the variable values for the boid simulation
     public void SetComputeParams(ComputeShader shader, Vector2 mousePosition, float massSign)
     {
         float InvMass = 1.0f / BoidMass;
@@ -181,6 +206,8 @@ public class BoidSimParams
     }
 }
 
+//Struct for boid data
+//For convenience this should be identical to the one found in the shaders.
 public struct BoidData
 {
     public Vector2 position;
