@@ -37,7 +37,7 @@ public class RootRenderer : MonoBehaviour, ISimulationSettings
         };
 
         //Create procedural boid mesh material
-        materialMesh = new Material(Shader.Find("Hidden/BoidMeshShader"))
+        materialMesh = new Material(Shader.Find("Hidden/BoidMesh"))
         {
             hideFlags = HideFlags.HideAndDontSave
         };

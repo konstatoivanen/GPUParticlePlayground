@@ -1,4 +1,4 @@
-﻿Shader "Hidden/BoidMeshShader" 
+﻿Shader "Hidden/BoidMesh" 
 {
 	SubShader 
 	{
