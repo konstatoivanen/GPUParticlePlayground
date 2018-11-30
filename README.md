@@ -8,8 +8,9 @@ A DirectX 11 based boid flocking simulation.
 * Normal map painting via realtime height map sampling.
   * Boids will collide with brush strokes.
   * No inter frame interpolation (fast movements can leave spotty strokes).
-  * Also works as a voronoi painter.
+  * Also works as a voronoi cell painter (with very high brush size).
 * Boid/Physics simulation
+  * Simulation unit scale is in pixels.
   * Simulate up to 16,000 boids at once (for an average fps of 120 on test machine).
     * Could be increased but for ui design reasons this was an ok cap.
   * Runtime configuration to change boid simulation settings.
