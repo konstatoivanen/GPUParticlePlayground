@@ -44,6 +44,7 @@ namespace Utilities.UI
             switch(evt.type)
             {
                 case SettingType.Count:             simulationSettings.SetBoidCount(Mathf.RoundToInt(evt.value));          break;
+                case SettingType.BrushSize:         simulationSettings.BrushSize                              = evt.value; break;
                 case SettingType.Timescale:         simulationSettings.SimulationParameters.Timescale         = evt.value; break;
                 case SettingType.Drag:              simulationSettings.SimulationParameters.Drag              = evt.value; break;
                 case SettingType.BodyMass:          simulationSettings.SimulationParameters.BodyMass          = evt.value * evt.value; break;
@@ -68,7 +69,8 @@ namespace Utilities.UI
         {
             switch(type)
             {
-                case SettingType.Count:             return simulationSettings.SimulationParameters.Count; 
+                case SettingType.Count:             return simulationSettings.SimulationParameters.Count;
+                case SettingType.BrushSize:         return simulationSettings.BrushSize;
                 case SettingType.Timescale:         return simulationSettings.SimulationParameters.Timescale;
                 case SettingType.Drag:              return simulationSettings.SimulationParameters.Drag;
                 case SettingType.BodyMass:          return Mathf.Sqrt(simulationSettings.SimulationParameters.BodyMass);

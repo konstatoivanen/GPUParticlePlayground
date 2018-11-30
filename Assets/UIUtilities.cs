@@ -7,6 +7,7 @@ namespace Utilities.UI
     public enum SettingType
     {
         Count,
+        BrushSize,
         Timescale,
         Drag,
         BodyMass,
@@ -51,6 +52,7 @@ namespace Utilities.UI
     public interface ISimulationSettings
     {
         bool AllowInput { get; set; }
+        float BrushSize { get; set; }
         BoidSimParams SimulationParameters { get; }
         void SetBoidCount(int count);
     }
@@ -62,6 +64,7 @@ namespace Utilities.UI
         public static readonly Dictionary<SettingType, string> displayValues = new Dictionary<SettingType, string>()
         {
             {SettingType.Count,             "BOID COUNT :" },
+            {SettingType.BrushSize,         "BRUSH SIZE :" },
             {SettingType.Timescale,         "TIME SCALE :" },
             {SettingType.Drag,              "DRAG :" },
             {SettingType.BodyMass,          "BODY MASS :" },
@@ -82,6 +85,7 @@ namespace Utilities.UI
         public static readonly Dictionary<SettingType, string> displayInfo = new Dictionary<SettingType, string>()
         {
             {SettingType.Count,             "Number of boids in the simulation (rounded to multiples of 32)." },
+            {SettingType.BrushSize,         "Size of the normal painting brush in pixels." },
             {SettingType.Timescale,         "Time scale of the simulation." },
             {SettingType.Drag,              "Coefficient for how much boids resist movement over time." },
             {SettingType.BodyMass,          "Mass (to the power of 2 for convenience) of the gravity point that is applied when pressing Q or E" },
@@ -103,6 +107,7 @@ namespace Utilities.UI
         public static readonly Dictionary<SettingType, Vector2> valueRanges = new Dictionary<SettingType, Vector2>()
         {
             {SettingType.Count,             new Vector2(32,     16000) },
+            {SettingType.BrushSize,         new Vector2(16,     512) },
             {SettingType.Timescale,         new Vector2(0.1f,   32) },
             {SettingType.Drag,              new Vector2(0,      16) },
             {SettingType.BodyMass,          new Vector2(2,      10000000) },

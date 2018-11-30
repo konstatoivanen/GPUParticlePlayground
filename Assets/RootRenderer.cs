@@ -8,6 +8,8 @@ public class RootRenderer : MonoBehaviour, ISimulationSettings
 
     //Interface accessor
     public bool AllowInput { get; set; }
+    //Interface accessor
+    public float BrushSize { get => brushSize; set => brushSize = value; }
 
     public float brushSize;
     public BoidSimParams parameters;
